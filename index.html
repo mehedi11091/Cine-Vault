@@ -1,0 +1,2175 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CineVault by Shimul</title>
+
+  <!-- Google Fonts: Outfit (Display) & Inter (UI) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Firebase Compat SDKs (Works on GitHub Pages, Preview, AND local phone files) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <!-- Google Identity Services (for Direct Upload to Google Drive) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            display: ['Outfit', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            vice: {
+              950: '#090414',
+              900: '#120824',
+              800: '#1c0e36',
+              700: '#2b164f',
+              pink: '#ff2e93',
+              orange: '#ff7b00',
+              cyan: '#00f0ff',
+              gold: '#ffc857',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* GTA VI / Vice City Neon Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090414;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #ff2e93, #ff7b00);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, #00f0ff, #ff2e93);
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: #090414;
+    }
+
+    h1, h2, h3, h4, .font-display {
+      font-family: 'Outfit', system-ui, sans-serif;
+    }
+
+    /* Ambient Vice City Sunset & Neon Glows */
+    .vice-bg-mesh {
+      background:
+        radial-gradient(circle at 12% 15%, rgba(255, 46, 147, 0.18) 0%, transparent 42%),
+        radial-gradient(circle at 88% 12%, rgba(255, 123, 0, 0.16) 0%, transparent 40%),
+        radial-gradient(circle at 80% 85%, rgba(0, 240, 255, 0.14) 0%, transparent 45%),
+        radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.16) 0%, transparent 45%),
+        #090414;
+    }
+
+    /* Glassmorphism Panels */
+    .vice-glass {
+      background: rgba(18, 8, 36, 0.78);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    /* Interactive Card Hover Glow */
+    .vice-card {
+      background: linear-gradient(160deg, rgba(28, 14, 54, 0.88) 0%, rgba(15, 6, 30, 0.94) 100%);
+      transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+    .vice-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(0, 240, 255, 0.55);
+      box-shadow: 0 14px 34px -10px rgba(255, 46, 147, 0.35), 0 0 20px -6px rgba(0, 240, 255, 0.25);
+    }
+
+    /* Neon Gradient Button */
+    .btn-vice {
+      background: linear-gradient(135deg, #ff2e93 0%, #ff5e3a 55%, #ff9900 100%);
+      box-shadow: 0 8px 24px -6px rgba(255, 46, 147, 0.55);
+      transition: all 0.2s ease;
+    }
+    .btn-vice:hover {
+      filter: brightness(1.08);
+      box-shadow: 0 10px 28px -4px rgba(255, 123, 0, 0.65);
+      transform: translateY(-1px);
+    }
+    .btn-vice:active {
+      transform: scale(0.97);
+    }
+
+    /* Hide scrollbar for horizontal category pills */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Fallback Cinema Fullscreen Mode (Mobile Friendly) */
+    .cinema-fullscreen {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      aspect-ratio: auto !important;
+      z-index: 9999 !important;
+      background: #000 !important;
+    }
+  </style>
+</head>
+<body class="vice-bg-mesh text-slate-100 min-h-screen flex flex-col overflow-x-hidden selection:bg-pink-500/40 selection:text-white">
+
+  <!-- Mobile Sidebar Backdrop -->
+  <div id="sidebarBackdrop" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-40 hidden lg:hidden transition-opacity" onclick="toggleMobileSidebar(false)"></div>
+
+  <!-- Main App Shell -->
+  <div class="flex flex-1 min-h-screen w-full relative">
+
+    <!-- Left Sidebar Navigation -->
+    <aside id="sidebar" class="fixed lg:sticky top-0 left-0 z-50 h-screen w-72 vice-glass border-r border-fuchsia-500/20 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out shrink-0">
+      <!-- Brand Header -->
+      <div class="p-5 border-b border-fuchsia-500/15 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 via-orange-500 to-amber-400 flex items-center justify-center shadow-lg shadow-pink-500/35 ring-1 ring-white/25">
+            <svg class="w-6 h-6 text-white drop-shadow" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-amber-300 via-pink-400 to-cyan-300 bg-clip-text text-transparent leading-none">CINEVAULT</h1>
+            <p class="text-[11px] font-bold tracking-wider uppercase text-cyan-300 mt-1">By Shimul</p>
+          </div>
+        </div>
+        <button type="button" onclick="toggleMobileSidebar(false)" class="lg:hidden p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/10" aria-label="Close sidebar">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Primary Upload CTA -->
+      <div class="p-4">
+        <button type="button" onclick="openUploadModal()" class="btn-vice w-full py-3.5 px-4 rounded-2xl text-white font-bold text-sm tracking-wide flex items-center justify-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Upload / Add Video
+        </button>
+      </div>
+
+      <!-- Quick Filters -->
+      <div class="px-3 pb-2 space-y-1">
+        <p class="px-3 text-[11px] font-bold uppercase tracking-widest text-fuchsia-300/60 mb-1.5">Library</p>
+        <button type="button" onclick="setFilter('view', 'all')" id="nav-all" class="nav-item w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all">
+          <span class="flex items-center gap-3">
+            <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+            All Videos
+          </span>
+          <span id="count-all" class="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-cyan-200 font-semibold">0</span>
+        </button>
+
+        <button type="button" onclick="setFilter('view', 'favorites')" id="nav-favorites" class="nav-item w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all">
+          <span class="flex items-center gap-3">
+            <svg class="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+            Favorites
+          </span>
+          <span id="count-favorites" class="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-pink-200 font-semibold">0</span>
+        </button>
+
+        <button type="button" onclick="setFilter('view', 'unwatched')" id="nav-unwatched" class="nav-item w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all">
+          <span class="flex items-center gap-3">
+            <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Watch Later
+          </span>
+          <span id="count-unwatched" class="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-amber-200 font-semibold">0</span>
+        </button>
+
+        <button type="button" onclick="setFilter('view', 'watched')" id="nav-watched" class="nav-item w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all">
+          <span class="flex items-center gap-3">
+            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Watched History
+          </span>
+          <span id="count-watched" class="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-emerald-200 font-semibold">0</span>
+        </button>
+      </div>
+
+      <!-- Categories List -->
+      <div class="flex-1 overflow-y-auto px-3 py-3 border-t border-fuchsia-500/15">
+        <div class="flex items-center justify-between px-3 mb-2">
+          <p class="text-[11px] font-bold uppercase tracking-widest text-fuchsia-300/60">Categories</p>
+          <button type="button" onclick="openCategoryModal()" class="text-xs text-cyan-300 hover:text-cyan-200 font-semibold flex items-center gap-1 py-1 px-2 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-400/20 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+            New
+          </button>
+        </div>
+        <div id="categoryList" class="space-y-1">
+          <!-- Dynamically populated categories -->
+        </div>
+      </div>
+
+      <!-- Cloud Sync Status Footer -->
+      <div class="p-4 border-t border-fuchsia-500/15 bg-vice-950/70">
+        <div class="flex items-center justify-between text-xs mb-1.5">
+          <span class="text-fuchsia-200/70 font-medium flex items-center gap-1.5">
+            <span id="cloudStatusDot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            Cloud Vault
+          </span>
+          <span id="cloudStatusText" class="text-cyan-300 font-bold">Connecting...</span>
+        </div>
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          0 MB phone storage used. Videos stream &amp; download directly from Google Drive &amp; cloud links.
+        </p>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col min-w-0">
+
+      <!-- Top Sticky Header -->
+      <header class="sticky top-0 z-30 vice-glass border-b border-fuchsia-500/20 px-4 sm:px-6 lg:px-8 py-3.5">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+          <!-- Mobile Menu Button & Search -->
+          <div class="flex items-center gap-3 flex-1 max-w-2xl">
+            <button type="button" onclick="toggleMobileSidebar(true)" class="lg:hidden p-2.5 rounded-xl bg-vice-800/90 border border-fuchsia-500/30 text-pink-300 hover:text-white shrink-0 active:scale-95 transition-transform" aria-label="Open menu">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
+            <div class="relative flex-1 group">
+              <svg class="w-4 h-4 text-pink-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none group-focus-within:text-cyan-400 transition-colors" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                id="searchInput"
+                type="text"
+                placeholder="Search movies, clips, tags, or notes..."
+                oninput="handleSearch(this.value)"
+                class="w-full pl-10 pr-10 py-2.5 rounded-2xl bg-vice-950/80 border border-fuchsia-500/25 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/25 transition-all"
+              />
+              <button type="button" id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 rounded-lg">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Sort & Source Filter Controls -->
+          <div class="flex items-center gap-2 sm:gap-3">
+            <select id="sourceFilter" onchange="setFilter('source', this.value)" class="flex-1 sm:flex-none px-3 py-2.5 rounded-xl bg-vice-900/90 border border-fuchsia-500/25 text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-cyan-400 cursor-pointer">
+              <option value="all">All Sources</option>
+              <option value="gdrive">Google Drive</option>
+              <option value="youtube">YouTube / Vimeo</option>
+              <option value="direct">Direct MP4</option>
+            </select>
+
+            <select id="sortSelect" onchange="setFilter('sort', this.value)" class="flex-1 sm:flex-none px-3 py-2.5 rounded-xl bg-vice-900/90 border border-fuchsia-500/25 text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-cyan-400 cursor-pointer">
+              <option value="newest">Newest Added</option>
+              <option value="recent_watched">Recently Watched</option>
+              <option value="title_asc">Title (A–Z)</option>
+              <option value="oldest">Oldest Added</option>
+            </select>
+          </div>
+        </div>
+      </header>
+
+      <!-- Hero Banner & Quick Interactive Stats -->
+      <section class="px-4 sm:px-6 lg:px-8 pt-6 pb-2">
+        <div class="relative overflow-hidden rounded-3xl p-5 sm:p-6 border border-fuchsia-500/25 bg-gradient-to-r from-[#240b36]/90 via-[#3b0f47]/80 to-[#161b3e]/90 shadow-2xl shadow-pink-950/30">
+          <!-- Decorative Sunset Glow Orbs -->
+          <div class="pointer-events-none absolute -top-16 -right-16 w-56 h-56 rounded-full bg-gradient-to-br from-orange-500/35 via-pink-500/30 to-transparent blur-2xl"></div>
+          <div class="pointer-events-none absolute -bottom-16 -left-10 w-48 h-48 rounded-full bg-cyan-400/20 blur-2xl"></div>
+
+          <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-pink-400/30 text-[11px] font-bold uppercase tracking-widest text-amber-300 mb-2">
+                <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                Shimul's Personal Cinema Hub
+              </div>
+              <h2 id="viewHeading" class="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-pink-200 to-amber-200 bg-clip-text text-transparent">All Videos</h2>
+              <p id="viewSubheading" class="text-xs sm:text-sm text-slate-300 mt-1">Your neon-lit personal archive — stream, organize &amp; download anytime.</p>
+            </div>
+
+            <!-- Interactive Quick Stat Chips -->
+            <div class="flex flex-wrap items-center gap-2.5">
+              <button type="button" onclick="setFilter('view', 'all')" class="px-3.5 py-2 rounded-2xl bg-vice-950/60 hover:bg-vice-950/90 border border-cyan-400/30 text-left transition-all active:scale-95">
+                <p class="text-[10px] uppercase tracking-wider text-cyan-300 font-bold">Total</p>
+                <p id="statTotal" class="text-lg font-extrabold text-white leading-tight">0</p>
+              </button>
+              <button type="button" onclick="setFilter('view', 'favorites')" class="px-3.5 py-2 rounded-2xl bg-vice-950/60 hover:bg-vice-950/90 border border-pink-400/30 text-left transition-all active:scale-95">
+                <p class="text-[10px] uppercase tracking-wider text-pink-300 font-bold">Favorites</p>
+                <p id="statFavs" class="text-lg font-extrabold text-white leading-tight">0</p>
+              </button>
+              <button type="button" onclick="openUploadModal()" class="btn-vice px-4 py-3 rounded-2xl text-white text-xs sm:text-sm font-bold flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+                Add Video
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Horizontal Category Pills -->
+        <div id="categoryPills" class="flex items-center gap-2 overflow-x-auto pb-2 pt-5 no-scrollbar">
+          <!-- Populated via JS -->
+        </div>
+      </section>
+
+      <!-- Video Library Grid & Empty State -->
+      <section class="flex-1 px-4 sm:px-6 lg:px-8 pb-10 pt-2">
+        <div id="videoGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+          <!-- Video cards dynamically rendered here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden flex-col items-center justify-center text-center py-16 px-4 rounded-3xl border border-dashed border-fuchsia-500/25 bg-vice-900/40">
+          <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500/20 to-cyan-500/20 border border-pink-400/30 flex items-center justify-center mb-4">
+            <svg class="w-8 h-8 text-pink-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h3 id="emptyTitle" class="text-lg font-extrabold text-white">Your cloud vault is empty</h3>
+          <p id="emptyDesc" class="text-sm text-slate-400 max-w-md mt-1.5">Upload a video directly to Google Drive or paste a Drive, YouTube, or MP4 link to save it to your library.</p>
+          <div class="flex flex-wrap items-center justify-center gap-3 mt-6">
+            <button type="button" onclick="openUploadModal()" class="btn-vice px-5 py-2.5 rounded-xl text-white text-sm font-bold flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+              Add First Video
+            </button>
+            <button type="button" id="resetFiltersBtn" onclick="resetAllFilters()" class="hidden px-4 py-2.5 rounded-xl bg-vice-800 hover:bg-vice-700 border border-fuchsia-500/25 text-slate-200 text-sm font-semibold">
+              Reset Filters
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Creator Signature Footer -->
+      <footer class="px-4 sm:px-6 lg:px-8 py-5 border-t border-fuchsia-500/15 mt-auto">
+        <div class="flex items-center justify-center text-xs text-slate-400">
+          <p class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-pink-500"></span>
+            <span><strong class="bg-gradient-to-r from-amber-300 via-pink-400 to-cyan-300 bg-clip-text text-transparent font-extrabold">CineVault</strong> — Built &amp; Owned by <strong class="text-white font-bold">Shimul</strong></span>
+          </p>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- =========================================================
+       MODAL 1: ADD / EDIT CLOUD VIDEO MODAL
+       ========================================================= -->
+  <div id="uploadModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+    <div class="bg-vice-900 border border-fuchsia-500/30 rounded-3xl w-full max-w-xl shadow-2xl shadow-pink-950/50 overflow-hidden my-auto">
+      <!-- Header -->
+      <div class="px-6 py-4 border-b border-fuchsia-500/20 flex items-center justify-between bg-gradient-to-r from-pink-500/10 to-cyan-500/10">
+        <div>
+          <h3 id="uploadModalTitle" class="text-lg font-extrabold text-white">Add Cloud Video</h3>
+          <p class="text-xs text-slate-300 mt-0.5">Upload directly to Google Drive, or paste any video link</p>
+        </div>
+        <button type="button" onclick="closeUploadModal()" class="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+
+      <!-- Mode Switcher Tabs -->
+      <div id="uploadModeTabs" class="px-6 pt-4">
+        <div class="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-vice-950 border border-fuchsia-500/20">
+          <button type="button" id="tabDirectUpload" onclick="switchUploadTab('upload')" class="py-2 px-3 rounded-xl text-xs font-bold transition-all bg-gradient-to-r from-pink-500 to-orange-500 text-white shadow">
+            Direct Upload (Drive)
+          </button>
+          <button type="button" id="tabPasteLink" onclick="switchUploadTab('link')" class="py-2 px-3 rounded-xl text-xs font-bold transition-all text-slate-300 hover:text-white">
+            Paste Video Link
+          </button>
+        </div>
+      </div>
+
+      <!-- Form -->
+      <form id="videoForm" onsubmit="handleVideoSubmit(event)" class="p-6 space-y-4">
+        <input type="hidden" id="editVideoId" value="" />
+
+        <!-- TAB 1: DIRECT UPLOAD TO GOOGLE DRIVE -->
+        <div id="directUploadPanel" class="space-y-3">
+          <!-- Google Drive API Connection Status -->
+          <div class="flex items-center justify-between gap-2 p-3 rounded-xl bg-vice-950/90 border border-cyan-400/25">
+            <div class="flex items-center gap-2 min-w-0">
+              <span id="driveConnDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0"></span>
+              <span id="driveConnText" class="text-xs font-semibold text-slate-200 truncate">Google Drive Direct Upload</span>
+            </div>
+            <button type="button" onclick="toggleDriveConfigBox()" class="text-[11px] font-bold text-cyan-300 hover:text-cyan-200 px-2.5 py-1 rounded-lg bg-cyan-500/15 border border-cyan-400/30 shrink-0">
+              Setup Key
+            </button>
+          </div>
+
+          <!-- Collapsible Google OAuth Client ID Setup -->
+          <div id="driveConfigBox" class="hidden p-3.5 rounded-xl bg-vice-950 border border-fuchsia-500/30 space-y-2.5">
+            <label for="driveClientIdInput" class="block text-[11px] font-bold uppercase tracking-wider text-cyan-300">Google OAuth Client ID</label>
+            <div class="flex gap-2">
+              <input
+                id="driveClientIdInput"
+                type="text"
+                placeholder="123456789-xxxx.apps.googleusercontent.com"
+                class="flex-1 min-w-0 px-3 py-2 rounded-lg bg-vice-900 border border-fuchsia-500/25 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+              />
+              <button type="button" onclick="saveDriveClientId()" class="px-3 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-vice-950 text-xs font-extrabold shrink-0">
+                Save
+              </button>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+              Saved to your cloud settings. Once saved, pick any video from your phone and CineVault uploads it directly to your Google Drive!
+            </p>
+          </div>
+
+          <!-- File Picker Dropzone -->
+          <label for="directFileInput" class="block cursor-pointer rounded-2xl border-2 border-dashed border-fuchsia-500/35 hover:border-cyan-400/70 bg-vice-950/60 p-5 text-center transition-all group">
+            <input id="directFileInput" type="file" accept="video/*" class="hidden" onchange="handleDirectFileSelect(event)" />
+            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500/20 to-cyan-500/20 border border-pink-400/30 flex items-center justify-center mx-auto mb-2.5 group-hover:scale-105 transition-transform">
+              <svg class="w-6 h-6 text-cyan-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+            </div>
+            <p id="selectedFileName" class="text-sm font-bold text-white">Tap to choose a video from your phone</p>
+            <p id="selectedFileMeta" class="text-xs text-slate-400 mt-1">Supports 100MB – 2GB+ movies &amp; clips • Uploads to your Google Drive</p>
+          </label>
+        </div>
+
+        <!-- TAB 2: PASTE CLOUD VIDEO URL -->
+        <div id="pasteLinkPanel" class="hidden">
+          <label for="videoUrlInput" class="block text-xs font-bold uppercase tracking-wider text-fuchsia-300/80 mb-2">Cloud Video Link (Google Drive, YouTube, Vimeo, or MP4) *</label>
+          <input
+            id="videoUrlInput"
+            type="url"
+            placeholder="https://drive.google.com/file/d/.../view?usp=sharing"
+            class="w-full px-4 py-2.5 rounded-xl bg-vice-950 border border-fuchsia-500/25 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
+          />
+          <p class="text-[11px] text-cyan-300/80 mt-1.5">
+            Tip: For Google Drive videos, set link access to <strong>Anyone with the link</strong> so streaming &amp; downloads work smoothly.
+          </p>
+        </div>
+
+        <!-- Video Title -->
+        <div>
+          <label for="videoTitleInput" class="block text-xs font-bold uppercase tracking-wider text-fuchsia-300/80 mb-2">Video Title *</label>
+          <input
+            id="videoTitleInput"
+            type="text"
+            required
+            placeholder="e.g., Interstellar 1080p, Midnight Drive Mix..."
+            class="w-full px-4 py-2.5 rounded-xl bg-vice-950 border border-fuchsia-500/25 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
+          />
+        </div>
+
+        <!-- Optional Custom Thumbnail (Gallery Image or URL) -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label for="videoThumbInput" class="block text-xs font-bold uppercase tracking-wider text-fuchsia-300/80">Thumbnail (Optional)</label>
+            <label for="thumbFileInput" class="cursor-pointer text-[11px] font-bold text-cyan-300 hover:text-cyan-200 px-2.5 py-1 rounded-lg bg-cyan-500/15 border border-cyan-400/30 transition-colors">
+              + Choose from Gallery
+            </label>
+            <input id="thumbFileInput" type="file" accept="image/*" class="hidden" onchange="handleThumbFileSelect(event)" />
+          </div>
+
+          <!-- Selected Gallery Thumbnail Preview -->
+          <div id="thumbPreviewBox" class="hidden items-center gap-3 p-2.5 rounded-xl bg-vice-950 border border-cyan-400/30">
+            <img id="thumbPreviewImg" src="" alt="Thumbnail preview" class="w-20 h-12 object-cover rounded-lg border border-white/10 shrink-0" />
+            <div class="min-w-0 flex-1">
+              <p id="thumbPreviewName" class="text-xs font-semibold text-white truncate">Custom thumbnail</p>
+              <p class="text-[11px] text-emerald-300">Ready to save with video</p>
+            </div>
+            <button type="button" onclick="clearSelectedThumb()" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/15" title="Remove thumbnail">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+
+          <input
+            id="videoThumbInput"
+            type="url"
+            placeholder="Or paste an image URL (leave empty to auto-fetch)"
+            class="w-full px-4 py-2.5 rounded-xl bg-vice-950 border border-fuchsia-500/25 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
+          />
+        </div>
+
+        <!-- Category & Tags Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="videoCategorySelect" class="block text-xs font-bold uppercase tracking-wider text-fuchsia-300/80 mb-2">Category *</label>
+            <select
+              id="videoCategorySelect"
+              required
+              class="w-full px-4 py-2.5 rounded-xl bg-vice-950 border border-fuchsia-500/25 text-sm text-white focus:outline-none focus:border-cyan-400"
+            >
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          <div>
+            <label for="videoTagsInput" class="block text-xs font-bold uppercase tracking-wider text-fuchsia-300/80 mb-2">Tags (comma separated)</label>
+            <input
+              id="videoTagsInput"
+              type="text"
+              placeholder="movie, 400mb, favorite"
+              class="w-full px-4 py-2.5 rounded-xl bg-vice-950 border border-fuchsia-500/25 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+            />
+          </div>
+        </div>
+
+        <!-- Personal Notes -->
+        <div>
+          <label for="videoNotesInput" class="block text-xs font-bold uppercase tracking-wider text-fuchsia-300/80 mb-2">Personal Notes</label>
+          <textarea
+            id="videoNotesInput"
+            rows="2"
+            placeholder="Add notes or favorite timestamps so you can find it easily..."
+            class="w-full px-4 py-2.5 rounded-xl bg-vice-950 border border-fuchsia-500/25 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 resize-none"
+          ></textarea>
+        </div>
+
+        <!-- Save Progress Indicator -->
+        <div id="uploadStatus" class="hidden flex-col gap-2 p-3.5 rounded-xl bg-pink-500/15 border border-pink-500/35 text-pink-200 text-xs font-semibold">
+          <div class="flex items-center justify-between gap-2">
+            <span class="flex items-center gap-2 min-w-0">
+              <svg class="w-4 h-4 animate-spin text-cyan-400 shrink-0" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+              </svg>
+              <span id="uploadStatusText" class="truncate">Syncing to cloud vault...</span>
+            </span>
+            <span id="uploadPercentText" class="text-cyan-300 font-extrabold shrink-0"></span>
+          </div>
+          <div id="uploadProgressTrack" class="hidden w-full h-2 rounded-full bg-vice-950 overflow-hidden">
+            <div id="uploadProgressBar" class="h-full w-0 bg-gradient-to-r from-pink-500 via-orange-400 to-cyan-400 transition-all duration-150"></div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end gap-3 pt-2 border-t border-fuchsia-500/15">
+          <button type="button" onclick="closeUploadModal()" class="px-4 py-2.5 rounded-xl bg-vice-800 hover:bg-vice-700 text-slate-200 text-sm font-semibold transition-colors">
+            Cancel
+          </button>
+          <button type="submit" id="submitVideoBtn" class="btn-vice px-6 py-2.5 rounded-xl text-white text-sm font-bold">
+            Upload to Drive &amp; Save
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 2: CINEMA VIDEO PLAYER MODAL
+       ========================================================= -->
+  <div id="playerModal" class="fixed inset-0 z-50 hidden items-center justify-center p-2 sm:p-6 bg-black/90 backdrop-blur-lg overflow-y-auto">
+    <div class="bg-vice-900 border border-cyan-400/35 rounded-3xl w-full max-w-4xl shadow-[0_0_50px_rgba(255,46,147,0.25)] overflow-hidden my-auto flex flex-col max-h-[95vh]">
+      <!-- Top Bar -->
+      <div class="px-5 py-3.5 border-b border-fuchsia-500/20 flex items-center justify-between gap-4 shrink-0 bg-gradient-to-r from-pink-500/10 via-vice-900 to-cyan-500/10">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span id="playerCategoryBadge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full">Category</span>
+            <span id="playerSourceBadge" class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-white/10 text-cyan-200">Cloud</span>
+          </div>
+          <h3 id="playerTitle" class="text-base sm:text-lg font-extrabold text-white truncate mt-1">Video Title</h3>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" onclick="toggleFullscreen()" class="p-2 rounded-xl text-cyan-300 hover:text-white hover:bg-cyan-500/20 border border-cyan-400/30 transition-colors" aria-label="Fullscreen" title="Fullscreen">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+          </button>
+          <button type="button" onclick="closePlayerModal()" class="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-colors" aria-label="Close player">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Video Viewport -->
+      <div id="playerContainer" class="relative w-full aspect-video bg-black flex items-center justify-center shrink-0">
+        <!-- Dynamically injected <video> or <iframe> -->
+      </div>
+
+      <!-- Video Controls & Details -->
+      <div class="p-5 overflow-y-auto space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <!-- Action Pills -->
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="toggleFullscreen()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-pink-500/25 to-cyan-500/25 hover:from-pink-500/40 hover:to-cyan-500/40 border border-cyan-400/40 text-white text-xs sm:text-sm font-bold flex items-center gap-2 transition-all active:scale-95">
+              <svg class="w-4 h-4 text-cyan-300" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+              <span>Fullscreen</span>
+            </button>
+
+            <button type="button" id="playerFavBtn" onclick="toggleCurrentFavorite()" class="px-3.5 py-2 rounded-xl border text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+              <span>Favorite</span>
+            </button>
+
+            <button type="button" id="playerWatchedBtn" onclick="toggleCurrentWatched()" class="px-3.5 py-2 rounded-xl border text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <span>Watched</span>
+            </button>
+
+            <button type="button" id="playerDownloadBtn" onclick="downloadCurrentVideo()" class="px-3.5 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/40 text-cyan-300 text-xs sm:text-sm font-bold flex items-center gap-2 transition-all active:scale-95">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              <span>Download</span>
+            </button>
+
+            <button type="button" onclick="openEditFromPlayer()" class="px-3.5 py-2 rounded-xl bg-vice-800 hover:bg-vice-700 border border-fuchsia-500/25 text-slate-100 text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+              Edit
+            </button>
+          </div>
+
+          <button type="button" onclick="requestDeleteCurrentVideo()" class="px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            Delete
+          </button>
+        </div>
+
+        <!-- Notes & Tags -->
+        <div class="bg-vice-950/75 border border-fuchsia-500/20 rounded-2xl p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-fuchsia-200/70">
+            <span id="playerMetaDate">Added on ...</span>
+            <span id="playerMetaSize" class="text-cyan-300 font-semibold"></span>
+          </div>
+          <p id="playerNotes" class="text-sm text-slate-200 leading-relaxed whitespace-pre-line"></p>
+          <div id="playerTags" class="flex flex-wrap gap-1.5 pt-1"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 3: ADD CATEGORY MODAL
+       ========================================================= -->
+  <div id="categoryModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div class="bg-vice-900 border border-fuchsia-500/30 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-fuchsia-500/20 flex items-center justify-between">
+        <h3 class="text-base font-extrabold text-white">Create New Category</h3>
+        <button type="button" onclick="closeCategoryModal()" class="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+      <form onsubmit="handleAddCategory(event)" class="p-6 space-y-4">
+        <div>
+          <label for="newCategoryName" class="block text-xs font-bold uppercase tracking-wider text-fuchsia-300/80 mb-2">Category Name</label>
+          <input
+            id="newCategoryName"
+            type="text"
+            required
+            maxlength="30"
+            placeholder="e.g., Anime, Gaming, Action Movies..."
+            class="w-full px-4 py-2.5 rounded-xl bg-vice-950 border border-fuchsia-500/25 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-fuchsia-300/80 mb-2">Neon Accent Color</label>
+          <div id="colorPickerRow" class="flex items-center gap-2.5 flex-wrap">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button type="button" onclick="closeCategoryModal()" class="px-4 py-2 rounded-xl bg-vice-800 hover:bg-vice-700 text-slate-200 text-sm font-semibold">Cancel</button>
+          <button type="submit" class="btn-vice px-5 py-2 rounded-xl text-white text-sm font-bold">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 4: CUSTOM CONFIRMATION DIALOG (No native confirm())
+       ========================================================= -->
+  <div id="confirmModal" class="fixed inset-0 z-[60] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div class="bg-vice-900 border border-rose-500/35 rounded-3xl w-full max-w-sm shadow-2xl p-6 text-center">
+      <div class="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto mb-4">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+      </div>
+      <h4 id="confirmTitle" class="text-lg font-extrabold text-white">Are you sure?</h4>
+      <p id="confirmMessage" class="text-sm text-slate-300 mt-2">This action cannot be undone.</p>
+      <div class="grid grid-cols-2 gap-3 mt-6">
+        <button type="button" onclick="closeConfirmModal()" class="py-2.5 px-4 rounded-xl bg-vice-800 hover:bg-vice-700 text-slate-200 text-sm font-semibold">Cancel</button>
+        <button type="button" id="confirmActionBtn" class="py-2.5 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:brightness-110 text-white text-sm font-bold">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-[70] flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+  <!-- =========================================================
+       APPLICATION JAVASCRIPT (Standard Script for 100% Reliability)
+       ========================================================= -->
+  <script>
+    /* =========================================================
+       SHIMUL'S FIREBASE CONFIG
+       ========================================================= */
+    const USER_FIREBASE_CONFIG = {
+      apiKey: "AIzaSyAA-MYnfuR4NI-wjM_EQY6hcWC_afD2Tp0",
+      authDomain: "cinevault-91f7a.firebaseapp.com",
+      projectId: "cinevault-91f7a",
+      storageBucket: "cinevault-91f7a.firebasestorage.app",
+      messagingSenderId: "655136550707",
+      appId: "1:655136550707:web:6993e23c42eae3d8675846"
+    };
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'shimul-cinevault';
+    const firebaseConfig = typeof __firebase_config !== 'undefined'
+      ? JSON.parse(__firebase_config)
+      : USER_FIREBASE_CONFIG;
+
+    const DEFAULT_CATEGORIES = [
+      { id: 'movies', name: 'Movies', color: '#ff2e93' },
+      { id: 'music', name: 'Music Videos', color: '#ff7b00' },
+      { id: 'longvideos', name: '20-40 Min Videos', color: '#00f0ff' },
+      { id: 'documentaries', name: 'Documentaries', color: '#ffc857' },
+      { id: 'clips', name: 'Funny & Clips', color: '#a855f7' }
+    ];
+
+    const CATEGORY_COLORS = [
+      '#ff2e93', '#ff7b00', '#00f0ff', '#ffc857',
+      '#a855f7', '#10b981', '#f43f5e', '#38bdf8'
+    ];
+
+    const SAMPLE_VIDEOS = [
+      {
+        id: 'sample-1',
+        title: 'Big Buck Bunny — HD Demo Stream',
+        category: 'movies',
+        sourceType: 'direct',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+        thumbnailUrl: 'https://placehold.co/640x360/1e1b4b/ff2e93?text=Big+Buck+Bunny',
+        customThumb: false,
+        duration: 596,
+        notes: 'Sample cloud video. Tap Add Video to upload to Google Drive or paste any movie link!',
+        tags: ['sample', 'hd', 'cloud'],
+        isFavorite: true,
+        watched: false,
+        lastPosition: 0,
+        createdAt: Date.now() - 86400000,
+        lastWatchedAt: null
+      }
+    ];
+
+    // App State
+    let db = null;
+    let auth = null;
+    let currentUser = null;
+    let isCloudReady = false;
+    let allVideos = [];
+    let categories = DEFAULT_CATEGORIES.slice();
+    let currentPlayingVideoId = null;
+    let selectedCategoryColor = CATEGORY_COLORS[0];
+    let confirmCallback = null;
+    let hasSeededSamples = false;
+
+    // Upload, Thumbnail & Fullscreen State
+    let uploadMode = 'upload';
+    let selectedDirectFile = null;
+    let selectedThumbDataUrl = null;
+    let googleClientId = '';
+    let googleAccessToken = null;
+    let isCinemaFullscreen = false;
+
+    // Filters
+    const filters = {
+      view: 'all',
+      category: 'all',
+      source: 'all',
+      sort: 'newest',
+      search: ''
+    };
+
+    /* =========================================================
+       LOCAL FALLBACK STORAGE (Used only if offline or opened via file://)
+       ========================================================= */
+    function loadLocalFallback() {
+      try {
+        const savedVideos = localStorage.getItem('cinevault_videos_v2');
+        const savedCats = localStorage.getItem('cinevault_cats_v2');
+        const savedClient = localStorage.getItem('cinevault_drive_client_id');
+        if (savedClient) googleClientId = savedClient;
+        if (savedCats) {
+          const parsedCats = JSON.parse(savedCats);
+          if (Array.isArray(parsedCats) && parsedCats.length) categories = parsedCats;
+        }
+        if (savedVideos) {
+          allVideos = JSON.parse(savedVideos);
+        } else {
+          allVideos = SAMPLE_VIDEOS.slice();
+        }
+      } catch (e) {
+        allVideos = SAMPLE_VIDEOS.slice();
+      }
+      renderAll();
+    }
+
+    function saveLocalFallback() {
+      try {
+        localStorage.setItem('cinevault_videos_v2', JSON.stringify(allVideos));
+        localStorage.setItem('cinevault_cats_v2', JSON.stringify(categories));
+        if (googleClientId) localStorage.setItem('cinevault_drive_client_id', googleClientId);
+      } catch (e) {
+        // Ignore storage quota errors in fallback mode
+      }
+    }
+
+    /* =========================================================
+       FIRESTORE HELPERS
+       ========================================================= */
+    function getVideosCol() {
+      return db.collection('artifacts').doc(appId).collection('public').doc('data').collection('videos');
+    }
+    function getCategoriesDoc() {
+      return db.collection('artifacts').doc(appId).collection('public').doc('data').collection('meta').doc('categories');
+    }
+    function getSettingsDoc() {
+      return db.collection('artifacts').doc(appId).collection('public').doc('data').collection('meta').doc('settings');
+    }
+
+    function setCloudBadge(status, label) {
+      const dot = document.getElementById('cloudStatusDot');
+      const txt = document.getElementById('cloudStatusText');
+      if (!dot || !txt) return;
+      txt.textContent = label;
+      if (status === 'live') {
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+      } else if (status === 'offline') {
+        dot.className = 'w-2 h-2 rounded-full bg-amber-400';
+      } else {
+        dot.className = 'w-2 h-2 rounded-full bg-rose-400';
+      }
+    }
+
+    async function initCloudApp() {
+      // Immediately render UI so buttons ALWAYS respond on first tap
+      loadLocalFallback();
+
+      try {
+        if (typeof firebase === 'undefined') {
+          setCloudBadge('offline', 'Offline Mode');
+          return;
+        }
+
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+        auth = firebase.auth();
+        db = firebase.firestore();
+
+        // Authenticate anonymously (or custom token if provided)
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await auth.signInWithCustomToken(__initial_auth_token);
+        } else {
+          await auth.signInAnonymously();
+        }
+        currentUser = auth.currentUser;
+        isCloudReady = true;
+        setCloudBadge('live', 'Synced Live');
+
+        // Listen to Settings (Google Drive Client ID)
+        getSettingsDoc().onSnapshot((snap) => {
+          if (snap.exists && snap.data().googleClientId) {
+            googleClientId = snap.data().googleClientId;
+            try { localStorage.setItem('cinevault_drive_client_id', googleClientId); } catch (e) {}
+            updateDriveConnUI();
+          }
+        }, () => {});
+
+        // Listen to Categories
+        getCategoriesDoc().onSnapshot((snap) => {
+          if (snap.exists && Array.isArray(snap.data().items) && snap.data().items.length > 0) {
+            categories = snap.data().items;
+          } else {
+            categories = DEFAULT_CATEGORIES.slice();
+            getCategoriesDoc().set({ items: DEFAULT_CATEGORIES }).catch(() => {});
+          }
+          renderAll();
+        }, () => {});
+
+        // Listen to Videos
+        getVideosCol().onSnapshot((snapshot) => {
+          const list = [];
+          snapshot.forEach((docSnap) => {
+            list.push(Object.assign({ id: docSnap.id }, docSnap.data()));
+          });
+          if (list.length === 0 && !hasSeededSamples) {
+            hasSeededSamples = true;
+            SAMPLE_VIDEOS.forEach((v) => {
+              getVideosCol().doc(v.id).set(v).catch(() => {});
+            });
+            return;
+          }
+          allVideos = list;
+          saveLocalFallback();
+          renderAll();
+          if (currentPlayingVideoId) {
+            const active = allVideos.find(v => v.id === currentPlayingVideoId);
+            if (active) renderPlayerDetails(active);
+          }
+        }, (err) => {
+          console.error('Firestore listener error:', err);
+          setCloudBadge('offline', 'Local Fallback');
+        });
+      } catch (err) {
+        console.warn('Cloud init fallback:', err);
+        setCloudBadge('offline', 'Local Mode');
+      }
+    }
+
+    /* =========================================================
+       URL PARSER (Google Drive, YouTube, Vimeo, Direct MP4)
+       ========================================================= */
+    function parseOnlineVideoUrl(rawUrl) {
+      const trimmed = (rawUrl || '').trim();
+      try {
+        // 1. Google Drive links
+        const driveMatch = trimmed.match(/(?:drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=))([a-zA-Z0-9_-]{10,})/);
+        if (driveMatch && driveMatch[1]) {
+          const fileId = driveMatch[1];
+          return {
+            type: 'gdrive',
+            embedUrl: `https://drive.google.com/file/d/${fileId}/preview`,
+            downloadUrl: `https://drive.google.com/uc?export=download&id=${fileId}`,
+            thumbUrl: `https://drive.google.com/thumbnail?id=${fileId}&sz=w640`
+          };
+        }
+
+        // 2. YouTube links
+        const ytMatch = trimmed.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+        if (ytMatch && ytMatch[1]) {
+          const ytId = ytMatch[1];
+          return {
+            type: 'youtube',
+            embedUrl: `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0`,
+            downloadUrl: trimmed,
+            thumbUrl: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
+          };
+        }
+
+        // 3. Vimeo links
+        const vimeoMatch = trimmed.match(/vimeo\.com\/(\d+)/);
+        if (vimeoMatch && vimeoMatch[1]) {
+          return {
+            type: 'youtube',
+            embedUrl: `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`,
+            downloadUrl: trimmed,
+            thumbUrl: null
+          };
+        }
+
+        // 4. Direct MP4 / WebM / cloud media link
+        return {
+          type: 'direct',
+          embedUrl: trimmed,
+          downloadUrl: trimmed,
+          thumbUrl: null
+        };
+      } catch (e) {
+        return { type: 'direct', embedUrl: trimmed, downloadUrl: trimmed, thumbUrl: null };
+      }
+    }
+
+    function getSourceBadgeMeta(sourceType) {
+      if (sourceType === 'gdrive') return { label: 'Google Drive', cls: 'bg-cyan-500/20 text-cyan-200 border-cyan-400/40' };
+      if (sourceType === 'youtube') return { label: 'YouTube', cls: 'bg-rose-500/20 text-rose-200 border-rose-400/40' };
+      return { label: 'Direct Stream', cls: 'bg-fuchsia-500/20 text-fuchsia-200 border-fuchsia-400/40' };
+    }
+
+    /* =========================================================
+       RENDERING: SIDEBAR, PILLS, STATS & VIDEO GRID
+       ========================================================= */
+    function renderAll() {
+      renderCountsAndStats();
+      renderSidebarCategories();
+      renderCategoryPills();
+      renderActiveNavState();
+      renderVideoGrid();
+    }
+
+    function renderCountsAndStats() {
+      const total = allVideos.length;
+      const favs = allVideos.filter(v => v.isFavorite).length;
+      const watched = allVideos.filter(v => v.watched).length;
+      const unwatched = total - watched;
+
+      document.getElementById('count-all').textContent = total;
+      document.getElementById('count-favorites').textContent = favs;
+      document.getElementById('count-watched').textContent = watched;
+      document.getElementById('count-unwatched').textContent = unwatched;
+
+      document.getElementById('statTotal').textContent = total;
+      document.getElementById('statFavs').textContent = favs;
+    }
+
+    function renderActiveNavState() {
+      ['all', 'favorites', 'unwatched', 'watched'].forEach((key) => {
+        const el = document.getElementById('nav-' + key);
+        if (!el) return;
+        const isActive = filters.category === 'all' && filters.view === key;
+        el.className = isActive
+          ? 'nav-item w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-pink-500/25 to-cyan-500/15 border border-pink-400/40 text-white shadow'
+          : 'nav-item w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 border border-transparent';
+      });
+
+      const heading = document.getElementById('viewHeading');
+      const subheading = document.getElementById('viewSubheading');
+      if (filters.category !== 'all') {
+        const cat = getCategoryById(filters.category);
+        heading.textContent = cat ? cat.name : 'Category';
+        subheading.textContent = `Showing videos saved under ${cat ? cat.name : 'this category'}.`;
+      } else if (filters.view === 'favorites') {
+        heading.textContent = 'Favorites';
+        subheading.textContent = 'Your top starred movies, music videos, and clips.';
+      } else if (filters.view === 'unwatched') {
+        heading.textContent = 'Watch Later';
+        subheading.textContent = 'Videos queued up and ready for your next session.';
+      } else if (filters.view === 'watched') {
+        heading.textContent = 'Watched History';
+        subheading.textContent = 'Previously watched videos you can revisit anytime.';
+      } else {
+        heading.textContent = 'All Videos';
+        subheading.textContent = 'Your neon-lit personal archive — stream, organize & download anytime.';
+      }
+    }
+
+    function renderSidebarCategories() {
+      const container = document.getElementById('categoryList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      categories.forEach((cat) => {
+        const count = allVideos.filter(v => v.category === cat.id).length;
+        const isActive = filters.category === cat.id;
+
+        const row = document.createElement('div');
+        row.className = `group flex items-center justify-between rounded-xl transition-all ${
+          isActive
+            ? 'bg-gradient-to-r from-pink-500/25 to-cyan-500/15 border border-cyan-400/40 text-white'
+            : 'hover:bg-white/5 text-slate-300 border border-transparent'
+        }`;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'flex-1 flex items-center gap-2.5 px-3 py-2 text-left text-sm font-medium min-w-0';
+        btn.onclick = () => setFilter('category', cat.id);
+        btn.innerHTML = `
+          <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${cat.color}; box-shadow: 0 0 8px ${cat.color};"></span>
+          <span class="truncate">${escapeHtml(cat.name)}</span>
+        `;
+
+        const right = document.createElement('div');
+        right.className = 'flex items-center gap-1 pr-2';
+        right.innerHTML = `<span class="text-xs px-2 py-0.5 rounded-full bg-white/10 text-slate-300 font-semibold">${count}</span>`;
+
+        if (categories.length > 1) {
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.className = 'p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/15 opacity-60 group-hover:opacity-100 transition-all';
+          delBtn.title = 'Delete category';
+          delBtn.onclick = (e) => {
+            e.stopPropagation();
+            requestDeleteCategory(cat.id);
+          };
+          delBtn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>';
+          right.appendChild(delBtn);
+        }
+
+        row.appendChild(btn);
+        row.appendChild(right);
+        container.appendChild(row);
+      });
+    }
+
+    function renderCategoryPills() {
+      const container = document.getElementById('categoryPills');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.type = 'button';
+      allBtn.onclick = () => setFilter('category', 'all');
+      allBtn.className = filters.category === 'all'
+        ? 'shrink-0 px-4 py-2 rounded-full text-xs font-bold bg-gradient-to-r from-pink-500 to-orange-500 text-white shadow-lg shadow-pink-500/30'
+        : 'shrink-0 px-4 py-2 rounded-full text-xs font-semibold bg-vice-900/90 border border-fuchsia-500/25 text-slate-300 hover:text-white hover:border-cyan-400/50';
+      allBtn.textContent = 'All Categories';
+      container.appendChild(allBtn);
+
+      categories.forEach((cat) => {
+        const isActive = filters.category === cat.id;
+        const pill = document.createElement('button');
+        pill.type = 'button';
+        pill.onclick = () => setFilter('category', cat.id);
+        pill.className = isActive
+          ? 'shrink-0 px-4 py-2 rounded-full text-xs font-bold text-white flex items-center gap-2 border shadow-lg'
+          : 'shrink-0 px-4 py-2 rounded-full text-xs font-semibold bg-vice-900/90 border border-fuchsia-500/25 text-slate-300 hover:text-white flex items-center gap-2';
+        if (isActive) {
+          pill.style.backgroundColor = `${cat.color}33`;
+          pill.style.borderColor = cat.color;
+        }
+        pill.innerHTML = `<span class="w-2 h-2 rounded-full" style="background-color:${cat.color}"></span>${escapeHtml(cat.name)}`;
+        container.appendChild(pill);
+      });
+    }
+
+    function getFilteredVideos() {
+      const q = filters.search.trim().toLowerCase();
+      return allVideos.filter((v) => {
+        if (filters.view === 'favorites' && !v.isFavorite) return false;
+        if (filters.view === 'watched' && !v.watched) return false;
+        if (filters.view === 'unwatched' && v.watched) return false;
+        if (filters.category !== 'all' && v.category !== filters.category) return false;
+        if (filters.source !== 'all' && v.sourceType !== filters.source) return false;
+        if (q) {
+          const catName = (getCategoryById(v.category)?.name || '').toLowerCase();
+          const inTitle = (v.title || '').toLowerCase().includes(q);
+          const inNotes = (v.notes || '').toLowerCase().includes(q);
+          const inTags = (v.tags || []).some(t => t.toLowerCase().includes(q));
+          if (!inTitle && !inNotes && !inTags && !catName.includes(q)) return false;
+        }
+        return true;
+      }).sort((a, b) => {
+        if (filters.sort === 'oldest') return (a.createdAt || 0) - (b.createdAt || 0);
+        if (filters.sort === 'title_asc') return (a.title || '').localeCompare(b.title || '');
+        if (filters.sort === 'recent_watched') return (b.lastWatchedAt || 0) - (a.lastWatchedAt || 0);
+        return (b.createdAt || 0) - (a.createdAt || 0);
+      });
+    }
+
+    function renderVideoGrid() {
+      const grid = document.getElementById('videoGrid');
+      const empty = document.getElementById('emptyState');
+      const resetBtn = document.getElementById('resetFiltersBtn');
+      const filtered = getFilteredVideos();
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '';
+        empty.classList.remove('hidden');
+        empty.classList.add('flex');
+        const hasFilters = filters.search || filters.category !== 'all' || filters.view !== 'all' || filters.source !== 'all';
+        document.getElementById('emptyTitle').textContent = hasFilters ? 'No matching videos found' : 'Your cloud vault is empty';
+        document.getElementById('emptyDesc').textContent = hasFilters
+          ? 'Try clearing your search or switching categories.'
+          : 'Upload a video directly to Google Drive or paste a Drive, YouTube, or MP4 link to save it to your library.';
+        resetBtn.classList.toggle('hidden', !hasFilters);
+        return;
+      }
+
+      empty.classList.add('hidden');
+      empty.classList.remove('flex');
+      grid.innerHTML = '';
+
+      filtered.forEach((video) => {
+        const cat = getCategoryById(video.category) || { name: 'Uncategorized', color: '#a855f7' };
+        const badge = getSourceBadgeMeta(video.sourceType);
+        const fallbackThumb = `https://placehold.co/640x360/1c0e36/ff2e93?text=${encodeURIComponent((video.title || 'CineVault').slice(0, 18))}`;
+        const thumbSrc = video.thumbnailUrl || fallbackThumb;
+
+        const card = document.createElement('article');
+        card.className = 'vice-card rounded-3xl border border-fuchsia-500/20 overflow-hidden flex flex-col';
+
+        card.innerHTML = `
+          <div class="relative aspect-video bg-vice-950 overflow-hidden cursor-pointer group" onclick="openPlayer('${video.id}')">
+            <img
+              src="${thumbSrc}"
+              alt="${escapeHtml(video.title || 'Video')}"
+              loading="lazy"
+              onerror="this.onerror=null;this.src='${fallbackThumb}';"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-vice-950/90 via-transparent to-black/35"></div>
+
+            <!-- Play Button Overlay -->
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="w-12 h-12 rounded-full bg-gradient-to-r from-pink-500 to-orange-500 text-white flex items-center justify-center shadow-lg shadow-pink-500/40 group-hover:scale-110 transition-transform">
+                <svg class="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+            </div>
+
+            <!-- Top Left Source Badge -->
+            <span class="absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border backdrop-blur-md ${badge.cls}">
+              ${badge.label}
+            </span>
+
+            <!-- Top Right Watched Badge -->
+            ${video.watched ? '<span class="absolute top-3 right-3 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/25 border border-emerald-400/50 text-emerald-200 backdrop-blur-md">Watched</span>' : ''}
+
+            <!-- Bottom Duration -->
+            ${video.duration > 0 ? `<span class="absolute bottom-2.5 right-3 text-[11px] font-bold px-2 py-0.5 rounded-lg bg-black/75 text-white">${formatDuration(video.duration)}</span>` : ''}
+          </div>
+
+          <div class="p-4 flex-1 flex flex-col justify-between gap-3">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-1.5">
+                <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full" style="background:${cat.color}25; color:${cat.color}; border:1px solid ${cat.color}55;">
+                  ${escapeHtml(cat.name)}
+                </span>
+                <span class="text-[11px] text-slate-400">${formatRelativeDate(video.createdAt)}</span>
+              </div>
+              <h3 onclick="openPlayer('${video.id}')" class="text-sm sm:text-base font-extrabold text-white line-clamp-2 cursor-pointer hover:text-cyan-300 transition-colors">
+                ${escapeHtml(video.title || 'Untitled Video')}
+              </h3>
+              ${video.notes ? `<p class="text-xs text-slate-400 line-clamp-2 mt-1">${escapeHtml(video.notes)}</p>` : ''}
+            </div>
+
+            <!-- Card Footer Actions -->
+            <div class="flex items-center justify-between pt-3 border-t border-fuchsia-500/15">
+              <div class="flex items-center gap-1.5">
+                <button type="button" onclick="toggleFavorite('${video.id}')" class="p-2 rounded-xl border transition-all ${video.isFavorite ? 'bg-pink-500/25 border-pink-400/60 text-pink-300' : 'bg-vice-950/70 border-white/10 text-slate-400 hover:text-pink-300'}" title="Favorite">
+                  <svg class="w-4 h-4" fill="${video.isFavorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                </button>
+                <button type="button" onclick="downloadVideo('${video.id}')" class="p-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/35 text-cyan-300 transition-all" title="Download Video">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                </button>
+              </div>
+
+              <div class="flex items-center gap-1.5">
+                <button type="button" onclick="openEditModal('${video.id}')" class="p-2 rounded-xl bg-vice-950/70 hover:bg-vice-800 border border-white/10 text-slate-300 hover:text-white transition-all" title="Edit">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                </button>
+                <button type="button" onclick="requestDeleteVideo('${video.id}')" class="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/25 text-rose-300 transition-all" title="Delete">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    /* =========================================================
+       FILTERS & SEARCH
+       ========================================================= */
+    function setFilter(key, value) {
+      if (key === 'view') {
+        filters.view = value;
+        filters.category = 'all';
+      } else if (key === 'category') {
+        filters.category = value;
+        if (value !== 'all') filters.view = 'all';
+      } else {
+        filters[key] = value;
+      }
+      renderAll();
+      toggleMobileSidebar(false);
+    }
+
+    function handleSearch(val) {
+      filters.search = val;
+      document.getElementById('clearSearchBtn').classList.toggle('hidden', !val);
+      renderVideoGrid();
+    }
+
+    function clearSearch() {
+      document.getElementById('searchInput').value = '';
+      handleSearch('');
+    }
+
+    function resetAllFilters() {
+      filters.view = 'all';
+      filters.category = 'all';
+      filters.source = 'all';
+      filters.search = '';
+      document.getElementById('searchInput').value = '';
+      document.getElementById('sourceFilter').value = 'all';
+      document.getElementById('clearSearchBtn').classList.add('hidden');
+      renderAll();
+    }
+
+    /* =========================================================
+       UPLOAD MODAL, OPTIONAL THUMBNAIL & DIRECT GOOGLE DRIVE UPLOAD
+       ========================================================= */
+    function populateCategorySelect(selectedId) {
+      const sel = document.getElementById('videoCategorySelect');
+      if (!sel) return;
+      sel.innerHTML = '';
+      categories.forEach((cat) => {
+        const opt = document.createElement('option');
+        opt.value = cat.id;
+        opt.textContent = cat.name;
+        if (cat.id === selectedId) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+
+    function switchUploadTab(mode) {
+      uploadMode = mode;
+      const tabUpload = document.getElementById('tabDirectUpload');
+      const tabLink = document.getElementById('tabPasteLink');
+      const uploadPanel = document.getElementById('directUploadPanel');
+      const linkPanel = document.getElementById('pasteLinkPanel');
+      const urlInput = document.getElementById('videoUrlInput');
+      const submitBtn = document.getElementById('submitVideoBtn');
+      const isEditing = Boolean(document.getElementById('editVideoId').value);
+
+      if (mode === 'upload') {
+        tabUpload.className = 'py-2 px-3 rounded-xl text-xs font-bold transition-all bg-gradient-to-r from-pink-500 to-orange-500 text-white shadow';
+        tabLink.className = 'py-2 px-3 rounded-xl text-xs font-bold transition-all text-slate-300 hover:text-white';
+        uploadPanel.classList.remove('hidden');
+        linkPanel.classList.add('hidden');
+        urlInput.required = false;
+        submitBtn.textContent = isEditing ? 'Update Video' : 'Upload to Drive & Save';
+      } else {
+        tabLink.className = 'py-2 px-3 rounded-xl text-xs font-bold transition-all bg-gradient-to-r from-pink-500 to-orange-500 text-white shadow';
+        tabUpload.className = 'py-2 px-3 rounded-xl text-xs font-bold transition-all text-slate-300 hover:text-white';
+        uploadPanel.classList.add('hidden');
+        linkPanel.classList.remove('hidden');
+        urlInput.required = true;
+        submitBtn.textContent = isEditing ? 'Update Video' : 'Save to Cloud';
+      }
+    }
+
+    function updateDriveConnUI() {
+      const dot = document.getElementById('driveConnDot');
+      const txt = document.getElementById('driveConnText');
+      const input = document.getElementById('driveClientIdInput');
+      if (input && googleClientId) input.value = googleClientId;
+      if (!dot || !txt) return;
+      if (googleClientId) {
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0';
+        txt.textContent = 'Google Drive Ready';
+      } else {
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0';
+        txt.textContent = 'Tap "Setup Key" once for Direct Upload';
+      }
+    }
+
+    function toggleDriveConfigBox() {
+      const box = document.getElementById('driveConfigBox');
+      box.classList.toggle('hidden');
+      if (!box.classList.contains('hidden')) {
+        document.getElementById('driveClientIdInput').value = googleClientId || '';
+      }
+    }
+
+    async function saveDriveClientId() {
+      const val = document.getElementById('driveClientIdInput').value.trim();
+      if (!val || !val.includes('.apps.googleusercontent.com')) {
+        showToast('Please paste a valid Google OAuth Client ID (.apps.googleusercontent.com)', 'error');
+        return;
+      }
+      googleClientId = val;
+      try { localStorage.setItem('cinevault_drive_client_id', val); } catch (e) {}
+      if (isCloudReady && db) {
+        try {
+          await getSettingsDoc().set({ googleClientId: val }, { merge: true });
+        } catch (e) {}
+      }
+      updateDriveConnUI();
+      document.getElementById('driveConfigBox').classList.add('hidden');
+      showToast('Google Drive key saved! You can now upload directly.', 'success');
+    }
+
+    function handleDirectFileSelect(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      selectedDirectFile = file;
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      document.getElementById('selectedFileName').textContent = file.name;
+      document.getElementById('selectedFileMeta').textContent = `${sizeMB} MB • Ready to upload to your Google Drive`;
+
+      const titleInput = document.getElementById('videoTitleInput');
+      if (!titleInput.value.trim()) {
+        titleInput.value = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ');
+      }
+    }
+
+    function compressThumbnailFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const img = new Image();
+          img.onload = () => {
+            const maxW = 640;
+            const scale = Math.min(1, maxW / img.width);
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.72));
+          };
+          img.onerror = () => reject(new Error('Invalid image file.'));
+          img.src = ev.target.result;
+        };
+        reader.onerror = () => reject(new Error('Could not read thumbnail.'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function handleThumbFileSelect(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try {
+        const dataUrl = await compressThumbnailFile(file);
+        selectedThumbDataUrl = dataUrl;
+        document.getElementById('thumbPreviewImg').src = dataUrl;
+        document.getElementById('thumbPreviewName').textContent = file.name;
+        const box = document.getElementById('thumbPreviewBox');
+        box.classList.remove('hidden');
+        box.classList.add('flex');
+        document.getElementById('videoThumbInput').value = '';
+      } catch (err) {
+        showToast('Could not load that image. Try another photo.', 'error');
+      }
+    }
+
+    function clearSelectedThumb() {
+      selectedThumbDataUrl = null;
+      const input = document.getElementById('thumbFileInput');
+      if (input) input.value = '';
+      const box = document.getElementById('thumbPreviewBox');
+      if (box) {
+        box.classList.add('hidden');
+        box.classList.remove('flex');
+      }
+      const img = document.getElementById('thumbPreviewImg');
+      if (img) img.src = '';
+    }
+
+    function openUploadModal() {
+      document.getElementById('videoForm').reset();
+      document.getElementById('editVideoId').value = '';
+      selectedDirectFile = null;
+      clearSelectedThumb();
+      document.getElementById('selectedFileName').textContent = 'Tap to choose a video from your phone';
+      document.getElementById('selectedFileMeta').textContent = 'Supports 100MB – 2GB+ movies & clips • Uploads to your Google Drive';
+      document.getElementById('uploadModalTitle').textContent = 'Add Cloud Video';
+      document.getElementById('uploadModeTabs').classList.remove('hidden');
+      populateCategorySelect(filters.category !== 'all' ? filters.category : (categories[0] && categories[0].id));
+      switchUploadTab('upload');
+      updateDriveConnUI();
+
+      const modal = document.getElementById('uploadModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      toggleMobileSidebar(false);
+    }
+
+    function openEditModal(videoId) {
+      const video = allVideos.find(v => v.id === videoId);
+      if (!video) return;
+
+      document.getElementById('editVideoId').value = video.id;
+      document.getElementById('uploadModalTitle').textContent = 'Edit Video Details';
+      document.getElementById('uploadModeTabs').classList.add('hidden');
+      switchUploadTab('link');
+      document.getElementById('submitVideoBtn').textContent = 'Update Video';
+      document.getElementById('videoUrlInput').value = video.videoUrl || '';
+      document.getElementById('videoTitleInput').value = video.title || '';
+
+      clearSelectedThumb();
+      if (video.customThumb && video.thumbnailUrl) {
+        if (video.thumbnailUrl.startsWith('data:image/')) {
+          selectedThumbDataUrl = video.thumbnailUrl;
+          document.getElementById('thumbPreviewImg').src = video.thumbnailUrl;
+          document.getElementById('thumbPreviewName').textContent = 'Saved custom thumbnail';
+          const box = document.getElementById('thumbPreviewBox');
+          box.classList.remove('hidden');
+          box.classList.add('flex');
+          document.getElementById('videoThumbInput').value = '';
+        } else {
+          document.getElementById('videoThumbInput').value = video.thumbnailUrl;
+        }
+      } else {
+        document.getElementById('videoThumbInput').value = '';
+      }
+
+      populateCategorySelect(video.category);
+      document.getElementById('videoTagsInput').value = (video.tags || []).join(', ');
+      document.getElementById('videoNotesInput').value = video.notes || '';
+
+      const modal = document.getElementById('uploadModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeUploadModal() {
+      const modal = document.getElementById('uploadModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      clearSelectedThumb();
+      document.getElementById('uploadStatus').classList.add('hidden');
+      document.getElementById('uploadStatus').classList.remove('flex');
+      document.getElementById('uploadProgressTrack').classList.add('hidden');
+      document.getElementById('uploadProgressBar').style.width = '0%';
+      document.getElementById('uploadPercentText').textContent = '';
+      document.getElementById('submitVideoBtn').disabled = false;
+    }
+
+    function requestGoogleDriveToken() {
+      return new Promise((resolve, reject) => {
+        if (!googleClientId) {
+          reject(new Error('Tap "Setup Key" and paste your Google OAuth Client ID first.'));
+          return;
+        }
+        if (googleAccessToken) {
+          resolve(googleAccessToken);
+          return;
+        }
+        if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
+          reject(new Error('Google Sign-In is still loading. Wait 2 seconds and try again.'));
+          return;
+        }
+        const tokenClient = window.google.accounts.oauth2.initTokenClient({
+          client_id: googleClientId,
+          scope: 'https://www.googleapis.com/auth/drive.file',
+          callback: (resp) => {
+            if (resp.error) {
+              reject(new Error('Google sign-in cancelled or failed.'));
+              return;
+            }
+            googleAccessToken = resp.access_token;
+            resolve(googleAccessToken);
+          }
+        });
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+      });
+    }
+
+    async function uploadFileToGoogleDrive(file, title, accessToken, onProgress) {
+      const initRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + accessToken,
+          'Content-Type': 'application/json; charset=UTF-8',
+          'X-Upload-Content-Type': file.type || 'video/mp4',
+          'X-Upload-Content-Length': String(file.size)
+        },
+        body: JSON.stringify({
+          name: title + (file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.')) : '.mp4'),
+          mimeType: file.type || 'video/mp4'
+        })
+      });
+
+      if (!initRes.ok) {
+        if (initRes.status === 401) googleAccessToken = null;
+        throw new Error('Google Drive rejected upload. Check that Google Drive API is enabled.');
+      }
+
+      const uploadUrl = initRes.headers.get('Location');
+      if (!uploadUrl) throw new Error('Could not start Google Drive upload session.');
+
+      const fileData = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', uploadUrl, true);
+        xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable && typeof onProgress === 'function') {
+            onProgress(Math.round((ev.loaded / ev.total) * 100));
+          }
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(JSON.parse(xhr.responseText));
+          } else {
+            reject(new Error('Upload failed (status ' + xhr.status + ').'));
+          }
+        };
+        xhr.onerror = () => reject(new Error('Network error while uploading to Google Drive.'));
+        xhr.send(file);
+      });
+
+      // Make file playable via anyone-with-link
+      await fetch(`https://www.googleapis.com/drive/v3/files/${fileData.id}/permissions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + accessToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ role: 'reader', type: 'anyone' })
+      }).catch(() => {});
+
+      return `https://drive.google.com/file/d/${fileData.id}/view?usp=sharing`;
+    }
+
+    async function handleVideoSubmit(e) {
+      e.preventDefault();
+
+      const editId = document.getElementById('editVideoId').value;
+      let url = document.getElementById('videoUrlInput').value.trim();
+      const title = document.getElementById('videoTitleInput').value.trim();
+      const customThumbUrl = document.getElementById('videoThumbInput').value.trim();
+      const category = document.getElementById('videoCategorySelect').value;
+      const notes = document.getElementById('videoNotesInput').value.trim();
+      const tags = document.getElementById('videoTagsInput').value
+        .split(',')
+        .map(t => t.trim())
+        .filter(Boolean);
+
+      if (!title) {
+        showToast('Please enter a video title.', 'error');
+        return;
+      }
+
+      const isDirectUpload = !editId && uploadMode === 'upload';
+      if (isDirectUpload) {
+        if (!selectedDirectFile) {
+          showToast('Please choose a video file from your phone first.', 'error');
+          return;
+        }
+        if (!googleClientId) {
+          document.getElementById('driveConfigBox').classList.remove('hidden');
+          showToast('Tap "Setup Key" and paste your Google OAuth Client ID first.', 'error');
+          return;
+        }
+      } else if (!url) {
+        showToast('Please paste a valid video link.', 'error');
+        return;
+      }
+
+      const statusBox = document.getElementById('uploadStatus');
+      const statusText = document.getElementById('uploadStatusText');
+      const percentText = document.getElementById('uploadPercentText');
+      const progressTrack = document.getElementById('uploadProgressTrack');
+      const progressBar = document.getElementById('uploadProgressBar');
+      const submitBtn = document.getElementById('submitVideoBtn');
+
+      statusBox.classList.remove('hidden');
+      statusBox.classList.add('flex');
+      submitBtn.disabled = true;
+
+      try {
+        if (isDirectUpload) {
+          statusText.textContent = 'Connecting to Google Drive...';
+          const token = await requestGoogleDriveToken();
+          statusText.textContent = 'Uploading to Google Drive...';
+          progressTrack.classList.remove('hidden');
+          url = await uploadFileToGoogleDrive(selectedDirectFile, title, token, (pct) => {
+            percentText.textContent = pct + '%';
+            progressBar.style.width = pct + '%';
+          });
+          statusText.textContent = 'Saving to CineVault...';
+        } else {
+          statusText.textContent = 'Saving to cloud vault...';
+        }
+
+        const parsed = parseOnlineVideoUrl(url);
+        const finalThumb = selectedThumbDataUrl || customThumbUrl || parsed.thumbUrl || null;
+        const hasCustomThumb = Boolean(selectedThumbDataUrl || customThumbUrl);
+
+        if (editId) {
+          const patch = {
+            title,
+            category,
+            videoUrl: url,
+            sourceType: parsed.type,
+            thumbnailUrl: finalThumb,
+            customThumb: hasCustomThumb,
+            tags,
+            notes
+          };
+          if (isCloudReady && db) {
+            await getVideosCol().doc(editId).update(patch);
+          } else {
+            allVideos = allVideos.map(v => v.id === editId ? Object.assign({}, v, patch) : v);
+            saveLocalFallback();
+            renderAll();
+          }
+          closeUploadModal();
+          showToast('Video updated!', 'success');
+        } else {
+          const newId = 'vid-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+          const newVideo = {
+            id: newId,
+            title,
+            category,
+            sourceType: parsed.type,
+            videoUrl: url,
+            thumbnailUrl: finalThumb,
+            customThumb: hasCustomThumb,
+            duration: 0,
+            notes,
+            tags,
+            isFavorite: false,
+            watched: false,
+            lastPosition: 0,
+            createdAt: Date.now(),
+            lastWatchedAt: null
+          };
+          if (isCloudReady && db) {
+            await getVideosCol().doc(newId).set(newVideo);
+          } else {
+            allVideos.unshift(newVideo);
+            saveLocalFallback();
+            renderAll();
+          }
+          closeUploadModal();
+          showToast(isDirectUpload ? 'Uploaded to Google Drive & saved!' : 'Video saved to CineVault!', 'success');
+        }
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'Could not save video.', 'error');
+        statusBox.classList.add('hidden');
+        statusBox.classList.remove('flex');
+        submitBtn.disabled = false;
+      }
+    }
+
+    /* =========================================================
+       CINEMA VIDEO PLAYER & FULLSCREEN
+       ========================================================= */
+    function openPlayer(videoId) {
+      const video = allVideos.find(v => v.id === videoId);
+      if (!video) return;
+      currentPlayingVideoId = videoId;
+
+      const container = document.getElementById('playerContainer');
+      container.innerHTML = '';
+
+      const parsed = parseOnlineVideoUrl(video.videoUrl);
+      if (parsed.type === 'direct') {
+        createNativeVideoPlayer(container, parsed.embedUrl, video);
+      } else {
+        const iframe = document.createElement('iframe');
+        iframe.src = parsed.embedUrl;
+        iframe.className = 'w-full h-full border-0';
+        iframe.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media';
+        iframe.allowFullscreen = true;
+        container.appendChild(iframe);
+      }
+
+      renderPlayerDetails(video);
+
+      const modal = document.getElementById('playerModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      // Update lastWatchedAt
+      const now = Date.now();
+      if (isCloudReady && db) {
+        getVideosCol().doc(videoId).update({ lastWatchedAt: now }).catch(() => {});
+      } else {
+        video.lastWatchedAt = now;
+        saveLocalFallback();
+      }
+    }
+
+    function createNativeVideoPlayer(container, srcUrl, video) {
+      const videoEl = document.createElement('video');
+      videoEl.src = srcUrl;
+      videoEl.controls = true;
+      videoEl.autoplay = true;
+      videoEl.playsInline = true;
+      videoEl.className = 'w-full h-full bg-black outline-none';
+
+      videoEl.addEventListener('loadedmetadata', () => {
+        if (video.lastPosition && video.lastPosition > 5 && video.lastPosition < videoEl.duration - 5) {
+          videoEl.currentTime = video.lastPosition;
+        }
+        if ((!video.duration || video.duration === 0) && isFinite(videoEl.duration)) {
+          const dur = Math.floor(videoEl.duration);
+          if (isCloudReady && db) getVideosCol().doc(video.id).update({ duration: dur }).catch(() => {});
+        }
+      });
+
+      let lastSavedSec = 0;
+      videoEl.addEventListener('timeupdate', () => {
+        const cur = Math.floor(videoEl.currentTime);
+        if (Math.abs(cur - lastSavedSec) >= 10) {
+          lastSavedSec = cur;
+          if (isCloudReady && db) getVideosCol().doc(video.id).update({ lastPosition: cur }).catch(() => {});
+        }
+      });
+
+      videoEl.addEventListener('ended', () => {
+        if (!video.watched && isCloudReady && db) {
+          getVideosCol().doc(video.id).update({ watched: true, lastPosition: 0 }).catch(() => {});
+        }
+      });
+
+      container.appendChild(videoEl);
+    }
+
+    function setCinemaFullscreenUI(active) {
+      isCinemaFullscreen = active;
+      const container = document.getElementById('playerContainer');
+      if (!container) return;
+      const existingExit = document.getElementById('exitFsOverlayBtn');
+      if (existingExit) existingExit.remove();
+
+      if (active) {
+        container.classList.add('cinema-fullscreen');
+        const exitBtn = document.createElement('button');
+        exitBtn.id = 'exitFsOverlayBtn';
+        exitBtn.type = 'button';
+        exitBtn.onclick = toggleFullscreen;
+        exitBtn.className = 'fixed top-4 right-4 z-[10000] px-3.5 py-2 rounded-xl bg-black/75 border border-cyan-400/50 text-white text-xs font-bold backdrop-blur-md';
+        exitBtn.textContent = 'Exit Fullscreen';
+        container.appendChild(exitBtn);
+      } else {
+        container.classList.remove('cinema-fullscreen');
+      }
+    }
+
+    function toggleFullscreen() {
+      const container = document.getElementById('playerContainer');
+      if (!container) return;
+
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+        setCinemaFullscreenUI(false);
+        return;
+      }
+
+      if (isCinemaFullscreen) {
+        setCinemaFullscreenUI(false);
+        return;
+      }
+
+      if (container.requestFullscreen) {
+        container.requestFullscreen().catch(() => {
+          setCinemaFullscreenUI(true);
+        });
+      } else {
+        setCinemaFullscreenUI(true);
+      }
+    }
+
+    function renderPlayerDetails(video) {
+      const cat = getCategoryById(video.category) || { name: 'Uncategorized', color: '#a855f7' };
+      const catBadge = document.getElementById('playerCategoryBadge');
+      catBadge.textContent = cat.name;
+      catBadge.style.backgroundColor = `${cat.color}25`;
+      catBadge.style.color = cat.color;
+      catBadge.style.border = `1px solid ${cat.color}60`;
+
+      const badgeMeta = getSourceBadgeMeta(video.sourceType);
+      document.getElementById('playerSourceBadge').textContent = badgeMeta.label;
+      document.getElementById('playerTitle').textContent = video.title || 'Untitled Video';
+
+      const favBtn = document.getElementById('playerFavBtn');
+      favBtn.className = `px-3.5 py-2 rounded-xl border text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all ${
+        video.isFavorite
+          ? 'bg-pink-500/25 border-pink-400/60 text-pink-300'
+          : 'bg-vice-800 hover:bg-vice-700 border-fuchsia-500/25 text-slate-200'
+      }`;
+
+      const watchedBtn = document.getElementById('playerWatchedBtn');
+      watchedBtn.className = `px-3.5 py-2 rounded-xl border text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all ${
+        video.watched
+          ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300'
+          : 'bg-vice-800 hover:bg-vice-700 border-fuchsia-500/25 text-slate-200'
+      }`;
+
+      const dateStr = video.createdAt
+        ? new Date(video.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+        : 'Unknown date';
+      document.getElementById('playerMetaDate').textContent = `Added on ${dateStr}`;
+      document.getElementById('playerMetaSize').textContent = video.duration > 0 ? formatDuration(video.duration) : 'Cloud Stream';
+
+      const notesEl = document.getElementById('playerNotes');
+      notesEl.textContent = video.notes || 'No personal notes added for this video.';
+      notesEl.className = video.notes
+        ? 'text-sm text-slate-200 leading-relaxed whitespace-pre-line'
+        : 'text-xs text-slate-500 italic';
+
+      const tagsEl = document.getElementById('playerTags');
+      tagsEl.innerHTML = (video.tags || []).map(tag => `
+        <span class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-fuchsia-500/15 border border-fuchsia-500/25 text-pink-200">#${escapeHtml(tag)}</span>
+      `).join('');
+    }
+
+    function closePlayerModal() {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+      setCinemaFullscreenUI(false);
+      document.getElementById('playerContainer').innerHTML = '';
+      currentPlayingVideoId = null;
+      const modal = document.getElementById('playerModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    /* =========================================================
+       VIDEO ACTIONS: FAVORITE, WATCHED, DOWNLOAD, DELETE
+       ========================================================= */
+    async function toggleFavorite(videoId) {
+      const video = allVideos.find(v => v.id === videoId);
+      if (!video) return;
+      const nextVal = !video.isFavorite;
+      try {
+        if (isCloudReady && db) {
+          await getVideosCol().doc(videoId).update({ isFavorite: nextVal });
+        } else {
+          video.isFavorite = nextVal;
+          saveLocalFallback();
+          renderAll();
+          if (currentPlayingVideoId === videoId) renderPlayerDetails(video);
+        }
+        showToast(nextVal ? 'Added to Favorites!' : 'Removed from Favorites', 'info');
+      } catch (err) {
+        showToast('Could not update favorite status.', 'error');
+      }
+    }
+
+    function toggleCurrentFavorite() {
+      if (currentPlayingVideoId) toggleFavorite(currentPlayingVideoId);
+    }
+
+    async function toggleCurrentWatched() {
+      if (!currentPlayingVideoId) return;
+      const video = allVideos.find(v => v.id === currentPlayingVideoId);
+      if (!video) return;
+      const nextVal = !video.watched;
+      try {
+        if (isCloudReady && db) {
+          await getVideosCol().doc(video.id).update({ watched: nextVal });
+        } else {
+          video.watched = nextVal;
+          saveLocalFallback();
+          renderAll();
+          renderPlayerDetails(video);
+        }
+        showToast(nextVal ? 'Marked as Watched' : 'Moved to Watch Later', 'info');
+      } catch (err) {
+        showToast('Could not update watched status.', 'error');
+      }
+    }
+
+    function downloadVideo(videoId) {
+      const video = allVideos.find(v => v.id === videoId);
+      if (!video || !video.videoUrl) {
+        showToast('No download link available for this video.', 'error');
+        return;
+      }
+      const parsed = parseOnlineVideoUrl(video.videoUrl);
+      const targetUrl = parsed.downloadUrl || video.videoUrl;
+      const a = document.createElement('a');
+      a.href = targetUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.download = `${(video.title || 'video').replace(/[^a-z0-9]/gi, '_')}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('Starting download...', 'success');
+    }
+
+    function downloadCurrentVideo() {
+      if (currentPlayingVideoId) downloadVideo(currentPlayingVideoId);
+    }
+
+    function openEditFromPlayer() {
+      if (!currentPlayingVideoId) return;
+      const id = currentPlayingVideoId;
+      closePlayerModal();
+      openEditModal(id);
+    }
+
+    function requestDeleteVideo(videoId) {
+      const video = allVideos.find(v => v.id === videoId);
+      if (!video) return;
+      openConfirmModal(
+        'Delete Video?',
+        `Remove "${video.title}" from your CineVault library?`,
+        'Delete',
+        async () => {
+          try {
+            if (isCloudReady && db) {
+              await getVideosCol().doc(videoId).delete();
+            } else {
+              allVideos = allVideos.filter(v => v.id !== videoId);
+              saveLocalFallback();
+              renderAll();
+            }
+            if (currentPlayingVideoId === videoId) closePlayerModal();
+            showToast('Video removed from CineVault.', 'info');
+          } catch (err) {
+            showToast('Could not delete video.', 'error');
+          }
+        }
+      );
+    }
+
+    function requestDeleteCurrentVideo() {
+      if (currentPlayingVideoId) requestDeleteVideo(currentPlayingVideoId);
+    }
+
+    /* =========================================================
+       CATEGORY MANAGEMENT & CONFIRMATION MODAL
+       ========================================================= */
+    function renderColorPicker() {
+      const row = document.getElementById('colorPickerRow');
+      if (!row) return;
+      row.innerHTML = '';
+      CATEGORY_COLORS.forEach((color) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        const isSelected = selectedCategoryColor === color;
+        btn.className = `w-8 h-8 rounded-full transition-transform ${isSelected ? 'scale-110 ring-2 ring-white ring-offset-2 ring-offset-vice-900' : 'opacity-75 hover:opacity-100'}`;
+        btn.style.backgroundColor = color;
+        btn.onclick = () => {
+          selectedCategoryColor = color;
+          renderColorPicker();
+        };
+        row.appendChild(btn);
+      });
+    }
+
+    function openCategoryModal() {
+      document.getElementById('newCategoryName').value = '';
+      selectedCategoryColor = CATEGORY_COLORS[0];
+      renderColorPicker();
+      const modal = document.getElementById('categoryModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      toggleMobileSidebar(false);
+    }
+
+    function closeCategoryModal() {
+      const modal = document.getElementById('categoryModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function handleAddCategory(e) {
+      e.preventDefault();
+      const name = document.getElementById('newCategoryName').value.trim();
+      if (!name) return;
+
+      const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Math.random().toString(36).slice(2, 5);
+      const updated = categories.concat([{ id, name, color: selectedCategoryColor }]);
+      try {
+        if (isCloudReady && db) {
+          await getCategoriesDoc().set({ items: updated });
+        } else {
+          categories = updated;
+          saveLocalFallback();
+          renderAll();
+        }
+        closeCategoryModal();
+        showToast(`Category "${name}" created!`, 'success');
+      } catch (err) {
+        showToast('Could not save category.', 'error');
+      }
+    }
+
+    function requestDeleteCategory(catId) {
+      const cat = getCategoryById(catId);
+      if (!cat || categories.length <= 1) return;
+      openConfirmModal(
+        'Delete Category?',
+        `Delete "${cat.name}"? Videos inside it will stay safe in All Videos.`,
+        'Delete',
+        async () => {
+          const updated = categories.filter(c => c.id !== catId);
+          try {
+            if (isCloudReady && db) {
+              await getCategoriesDoc().set({ items: updated });
+            } else {
+              categories = updated;
+              saveLocalFallback();
+              renderAll();
+            }
+            if (filters.category === catId) filters.category = 'all';
+            showToast(`Category "${cat.name}" deleted.`, 'info');
+          } catch (err) {
+            showToast('Could not delete category.', 'error');
+          }
+        }
+      );
+    }
+
+    function openConfirmModal(title, message, actionLabel, onConfirm) {
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmMessage').textContent = message;
+      const btn = document.getElementById('confirmActionBtn');
+      btn.textContent = actionLabel || 'Delete';
+      confirmCallback = onConfirm;
+      btn.onclick = async () => {
+        const cb = confirmCallback;
+        closeConfirmModal();
+        if (typeof cb === 'function') await cb();
+      };
+      const modal = document.getElementById('confirmModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeConfirmModal() {
+      confirmCallback = null;
+      const modal = document.getElementById('confirmModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    /* =========================================================
+       UI HELPERS: SIDEBAR, TOASTS, FORMATTING
+       ========================================================= */
+    function toggleMobileSidebar(show) {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      if (!sidebar || !backdrop) return;
+      if (show) {
+        sidebar.classList.remove('-translate-x-full');
+        backdrop.classList.remove('hidden');
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('hidden');
+      }
+    }
+
+    function getCategoryById(id) {
+      return categories.find(c => c.id === id);
+    }
+
+    function formatDuration(seconds) {
+      const s = Math.floor(Number(seconds) || 0);
+      const hrs = Math.floor(s / 3600);
+      const mins = Math.floor((s % 3600) / 60);
+      const secs = s % 60;
+      if (hrs > 0) return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      return `${mins}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function formatRelativeDate(timestamp) {
+      if (!timestamp) return 'Just now';
+      const diff = Math.floor((Date.now() - timestamp) / 1000);
+      if (diff < 60) return 'Just now';
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+      return new Date(timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function showToast(message, type) {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+      const colors = {
+        success: 'bg-emerald-950/95 border-emerald-400/50 text-emerald-200',
+        error: 'bg-rose-950/95 border-rose-400/50 text-rose-200',
+        info: 'bg-vice-900/95 border-cyan-400/50 text-cyan-100'
+      };
+      const toast = document.createElement('div');
+      toast.className = `pointer-events-auto px-4 py-3 rounded-2xl border backdrop-blur-md shadow-xl text-xs sm:text-sm font-semibold transition-all duration-300 ${colors[type] || colors.info}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3200);
+    }
+
+    // Boot application once DOM is ready
+    window.addEventListener('DOMContentLoaded', initCloudApp);
+  </script>
+</body>
+</html>
